@@ -1,38 +1,43 @@
-FROM golang:1.22 AS op
+# BUILD THE op-node
+FROM us-docker.pkg.dev/oplabs-tools-artifacts/images/op-node:v1.11.2 AS op
+# FROM golang:1.22 AS op
 
-WORKDIR /app
+# WORKDIR /app
 
-ENV REPO=https://github.com/ethereum-optimism/optimism.git
-ENV VERSION=v1.11.2
-ENV COMMIT=bc6d11a854b4d4cd60d9de541eb60673912d4f76
-RUN git clone $REPO --branch op-node/$VERSION --single-branch . && \
-    git switch -c branch-$VERSION && \
-    bash -c '[ "$(git rev-parse HEAD)" = "$COMMIT" ]'
+# ENV REPO=https://github.com/ethereum-optimism/optimism.git
+# ENV VERSION=v1.11.2
+# ENV COMMIT=bc6d11a854b4d4cd60d9de541eb60673912d4f76
+# RUN git clone $REPO --branch op-node/$VERSION --single-branch . && \
+#     git switch -c branch-$VERSION && \
+#     bash -c '[ "$(git rev-parse HEAD)" = "$COMMIT" ]'
 
-# Install 'just'
-RUN curl -sSfL 'https://just.systems/install.sh' | bash -s -- --to /usr/local/bin
+# # Install 'just'
+# RUN curl -sSfL 'https://just.systems/install.sh' | bash -s -- --to /usr/local/bin
 
-RUN cd op-node && \
-    make VERSION=$VERSION op-node
+# RUN cd op-node && \
+#     make VERSION=$VERSION op-node
 
-FROM rust:1.82 AS reth
+# # BUILD THE reth
+FROM ghcr.io/paradigmxyz/op-reth:v1.2.0 AS reth
+# FROM rust:1.82 AS reth
 
-ARG FEATURES=jemalloc,asm-keccak,optimism
+# ARG FEATURES=jemalloc,asm-keccak,optimism
 
-WORKDIR /app
+# WORKDIR /app
 
-RUN apt-get update && apt-get -y upgrade && apt-get install -y git libclang-dev pkg-config curl build-essential
+# RUN apt-get update && apt-get -y upgrade && apt-get install -y git libclang-dev pkg-config curl build-essential
 
-ENV REPO=https://github.com/paradigmxyz/reth.git
-ENV VERSION=v1.2.0
-ENV COMMIT=1e965caf5fa176f244a31c0d2662ba1b590938db
-RUN git clone $REPO --branch $VERSION --single-branch . && \
-    git switch -c branch-$VERSION && \
-    bash -c '[ "$(git rev-parse HEAD)" = "$COMMIT" ]'
+# ENV REPO=https://github.com/paradigmxyz/reth.git
+# ENV VERSION=v1.2.0
+# ENV COMMIT=1e965caf5fa176f244a31c0d2662ba1b590938db
+# RUN git clone $REPO --branch $VERSION --single-branch . && \
+#     git switch -c branch-$VERSION && \
+#     bash -c '[ "$(git rev-parse HEAD)" = "$COMMIT" ]'
 
-RUN cargo build --bin op-reth --features $FEATURES --profile maxperf --manifest-path crates/optimism/bin/Cargo.toml
+# RUN cargo build --bin op-reth --features $FEATURES --profile maxperf --manifest-path crates/optimism/bin/Cargo.toml
 
-FROM ubuntu:22.04
+# THE REAL RUNTIME
+FROM m.daocloud.io/docker.io/library/ubuntu:22.04
 
 RUN apt-get update && \
     apt-get install -y jq curl supervisor && \
@@ -41,8 +46,8 @@ RUN mkdir -p /var/log/supervisor
 
 WORKDIR /app
 
-COPY --from=op /app/op-node/bin/op-node ./
-COPY --from=reth /app/target/maxperf/op-reth ./
+COPY --from=op /usr/local/bin/op-node ./
+COPY --from=reth /usr/local/bin/op-reth ./
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY ./reth/reth-entrypoint ./execution-entrypoint
 COPY op-node-entrypoint .
