@@ -1,5 +1,5 @@
 # BUILD THE op-node
-FROM us-docker.pkg.dev/oplabs-tools-artifacts/images/op-node:v1.11.2 AS op
+FROM us-docker.pkg.dev/oplabs-tools-artifacts/images/op-node:v1.13.2 AS op
 # FROM golang:1.22 AS op
 
 # WORKDIR /app
@@ -18,7 +18,7 @@ FROM us-docker.pkg.dev/oplabs-tools-artifacts/images/op-node:v1.11.2 AS op
 #     make VERSION=$VERSION op-node
 
 # # BUILD THE reth
-FROM ghcr.io/paradigmxyz/op-reth:v1.2.0 AS reth
+FROM ghcr.io/paradigmxyz/op-reth:v1.3.12 AS reth
 # FROM rust:1.82 AS reth
 
 # ARG FEATURES=jemalloc,asm-keccak,optimism
